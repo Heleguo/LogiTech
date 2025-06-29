@@ -24,221 +24,224 @@ import org.bukkit.block.Block;
 import org.bukkit.inventory.ItemStack;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Field;
 import java.util.*;
 
-public class FinalConvertor extends AbstractMachine implements FinalAltarCore.FinalAltarChargable , Laser.LaserChargable {
-    final static Material[] ID_TO_MATERIAL;
-    static int MAX_RANDOM_BUFFER;
-    static int MAX_RANDOM_BUFFER_SQARE;
-    static int MAX_TRY_COUNT;
-    final static int LIST_LEN;
-    final static Random rand=new Random();
-    static Field ID_FIELD;
-    final static HashMap<Material,Integer> MATERIAL_TO_ID;
+public class FinalConvertor extends AbstractMachine implements FinalAltarCore.FinalAltarChargable, Laser.LaserChargable {
+    // 有效的材料缓存
+    private static final Material[] VALID_MATERIALS;
+    private static final Map<Material, Integer> MATERIAL_INDEX_MAP = new HashMap<>();
+    private static final int MATERIAL_COUNT;
+    private static final Random rand = new Random();
+    private static final int MAX_NEIGHBOR_RANGE = 64; // 最大随机偏移量
+    private static final int MAX_ATTEMPTS = 36;       // 最大尝试次数
 
     static {
-        HashMap<Integer,Material> map;
-        MATERIAL_TO_ID=new HashMap<>();
-        try{
-            map=new HashMap<>();
-            Debug.debug("TRY PLAN A");
-            for(Material material:Material.values()){
-                map.put(material.getId(),material);
-            }
-            MAX_RANDOM_BUFFER=64;
-            MAX_TRY_COUNT=144;
-        }catch (Throwable e){
-            Debug.debug("PLAN A FAILED");
-            Debug.debug(e);
-            try{
-                Debug.debug("TRY PLAN B");
-                map=new HashMap<>();
-                ID_FIELD=Material.class.getDeclaredField("id");
-                ID_FIELD.setAccessible(true);
-                for(Material material:Material.values()){
-                    map.put((Integer)ID_FIELD.get(material) ,material);
-                }
-                MAX_RANDOM_BUFFER=81;
-                MAX_TRY_COUNT=576;
-            }catch (Throwable e2){
-                Debug.debug("PLAN B FAILED");
-                Debug.debug(e2);
-                Debug.debug("USE PLAN C");
-                map=new HashMap<>();
-                int t=rand.nextInt(3);
-                for(Material material:Material.values()){
-                    t+=1+rand.nextInt(3);
-                    map.put(t ,material);
-                }
-                MAX_RANDOM_BUFFER=10;
-                MAX_TRY_COUNT=36;
+        // 收集所有有效的材料（非空气、可堆叠的物品）
+        List<Material> validMaterialList = new ArrayList<>();
+        for (Material material : Material.values()) {
+            // 排除技术性方块、空气和不可堆叠物品
+            if (material.isItem() && !material.isAir() && material.getMaxStackSize() > 0) {
+                validMaterialList.add(material);
             }
         }
-        MAX_RANDOM_BUFFER_SQARE=MAX_RANDOM_BUFFER*MAX_RANDOM_BUFFER;
-
-        int maxValue= Collections.max(map.keySet())+MAX_RANDOM_BUFFER_SQARE;
-        Debug.debug("GET MAX AVAILABLE MATERIAL VALUE ",maxValue);
-        Debug.debug("GET COUNT OF MATERIAL ",map.size());
-        ID_TO_MATERIAL=new Material[maxValue];
-        for (Map.Entry<Integer,Material> e:map.entrySet()){
-            ID_TO_MATERIAL[e.getKey()]=e.getValue();
-            MATERIAL_TO_ID.put(e.getValue(),e.getKey());
+        
+        // 转换为数组并创建索引映射
+        VALID_MATERIALS = validMaterialList.toArray(new Material[0]);
+        MATERIAL_COUNT = VALID_MATERIALS.length;
+        
+        for (int i = 0; i < MATERIAL_COUNT; i++) {
+            MATERIAL_INDEX_MAP.put(VALID_MATERIALS[i], i);
         }
-        LIST_LEN=maxValue;
-        Debug.debug("MATERIAL MAPPING DONE");
+        
+        Debug.debug("Loaded " + MATERIAL_COUNT + " valid materials for FinalConvertor");
     }
-    public static Material getRandomMaterial(Material material){
-        Integer start_nullable=MATERIAL_TO_ID.get(material);
-        int start;
-        if(start_nullable==null){
-            start=rand.nextInt(LIST_LEN);
-            Debug.debug("ERROR! MATERIAL NOT IN MAPPER ",material.toString());
-        }else {
-            start=start_nullable;
-        }
-        Material mat;
-        for (int i=0;i<MAX_TRY_COUNT;++i){
 
-            double x= rand.nextInt(MAX_RANDOM_BUFFER_SQARE);
-            int sgn=rand.nextInt(2)==0?-1:1;
-            int delta=start+(int)(sgn*x);
-            if(delta>=0&&delta<LIST_LEN){
-                mat=ID_TO_MATERIAL[delta];
-                if(mat!=null)return mat;
+    public static Material getRandomMaterial(Material baseMaterial) {
+        // 获取基础材料的索引
+        Integer baseIndex = MATERIAL_INDEX_MAP.get(baseMaterial);
+        
+        // 如果基础材料无效，随机返回一个有效材料
+        if (baseIndex == null) {
+            Debug.debug("Base material not in valid set: " + baseMaterial);
+            return VALID_MATERIALS[rand.nextInt(MATERIAL_COUNT)];
+        }
+
+        // 在基础索引附近随机搜索
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+            // 生成 -MAX_NEIGHBOR_RANGE 到 +MAX_NEIGHBOR_RANGE 的随机偏移
+            int offset = rand.nextInt(MAX_NEIGHBOR_RANGE * 2 + 1) - MAX_NEIGHBOR_RANGE;
+            int targetIndex = baseIndex + offset;
+            
+            // 检查索引是否在有效范围内
+            if (targetIndex >= 0 && targetIndex < MATERIAL_COUNT) {
+                Material candidate = VALID_MATERIALS[targetIndex];
+                if (candidate != null) {
+                    return candidate;
+                }
             }
         }
+        
+        // 多次尝试失败后返回 null
         return null;
     }
-    protected final int[] BORDER=new int[]{
-        13,22,31,40,49
+
+    // 界面槽位定义
+    protected final int[] BORDER = {13, 22, 31, 40, 49};
+    protected final int[] INPUT_BORDER = {0, 1, 2, 3};
+    protected final int[] OUTPUT_BORDER = {5, 6, 7, 8};
+    protected final int[] INPUT_SLOT = {
+        9, 10, 11, 12,
+        18, 19, 20, 21,
+        27, 28, 29, 30,
+        36, 37, 38, 39,
+        45, 46, 47, 48
     };
-    protected final int[] INPUT_BORDER=new int[]{
-            0,1,2,3
+    protected final int[] OUTPUT_SLOT = {
+        14, 15, 16, 17,
+        23, 24, 25, 26,
+        32, 33, 34, 35,
+        41, 42, 43, 44,
+        50, 51, 52, 53
     };
-    protected final int[] OUTPUT_BORDER=new int[]{
-            5,6,7,8
-    };
-    protected final int[] INPUT_SLOT=new int[]{
-            9,10,11,12,
-            18,19,20,21,
-            27,28,29,30,
-            36,37,38,39,
-            45,46,47,48
-    };
-    protected final int[] OUTPUT_SLOT=new int[]{
-            14,15,16,17,
-            23,24,25,26,
-            32,33,34,35,
-            41,42,43,44,
-            50,51,52,53
-    };
-    public int[] getInputSlots(){
-        return INPUT_SLOT;
-    }
-    public int[] getOutputSlots(){
-        return OUTPUT_SLOT;
-    }
-    protected final int STATUS_SLOT=4;
-    protected final ItemStack STATUS_ON=new CustomItemStack(Material.GREEN_STAINED_GLASS_PANE,"&6机器信息","&7状态: &a已激活");
-    protected final ItemStack STATUS_OFF=new CustomItemStack(Material.RED_STAINED_GLASS_PANE,"&6机器信息","&7状态: &c未激活");
+    
+    protected final int STATUS_SLOT = 4;
+    protected final ItemStack STATUS_ON = new CustomItemStack(Material.GREEN_STAINED_GLASS_PANE, "&6机器信息", "&7状态: &a已激活");
+    protected final ItemStack STATUS_OFF = new CustomItemStack(Material.RED_STAINED_GLASS_PANE, "&6机器信息", "&7状态: &c未激活");
+    
     protected final ItemStack NULL_OUTPUT;
     protected final RandOutItem NULL_OUT;
     protected final MachineRecipe RECIPE_FOR_DISPLAY;
+
     public FinalConvertor(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe,
-                          int energybuffer, int energyConsumption, RandomItemStack nullOutput){
+                          int energybuffer, int energyConsumption, RandomItemStack nullOutput) {
         super(category, item, recipeType, recipe, energybuffer, energyConsumption);
-        this.NULL_OUTPUT=nullOutput;
-        this.NULL_OUT=nullOutput;
+        this.NULL_OUTPUT = nullOutput;
+        this.NULL_OUT = nullOutput;
+        
         this.setDisplayRecipes(
-                Utils.list(
-                        AddUtils.getInfoShow("&f机制 - &c充能",
-                                "&7当置于贰级终极祭坛上时",
-                                "&7且机器被终极祭坛结构中的所有宏激光发射器充能时",
-                                "&7即终极祭坛中四个宏激光发射器分别位于四个壹级以上终极祭坛上时",
-                                "&7机器激活,进行运转"
-                                ),null,
-                        AddUtils.getInfoShow("&f机制 - &c随机波动",
-                                "&7当机器运转时,",
-                                "&7机器会随机波动若干次输入测的物品材质id",
-                                "&7并尝试将其转为其他材质的原版物品",
-                                "&7同时赋予其随机的数量",
-                                "&7当转换失败时,机器会随机从下方可能的输出中选择一项",
-                                "&7进行输出")
+            Utils.list(
+                AddUtils.getInfoShow("&f机制 - &c充能",
+                    "&7当置于贰级终极祭坛上时",
+                    "&7且机器被终极祭坛结构中的所有宏激光发射器充能时",
+                    "&7即终极祭坛中四个宏激光发射器分别位于四个壹级以上终极祭坛上时",
+                    "&7机器激活,进行运转"
+                ),
+                null,
+                AddUtils.getInfoShow("&f机制 - &c随机波动",
+                    "&7当机器运转时,",
+                    "&7机器会随机波动输入物品的材质",
+                    "&7并尝试将其转为其他材质的原版物品",
+                    "&7同时赋予其随机的数量",
+                    "&7当转换失败时,机器会随机从下方可能的输出中选择一项",
+                    "&7进行输出"
                 )
+            )
         );
-        this.RECIPE_FOR_DISPLAY= MachineRecipeUtils.stackFrom(-1,
-                new ItemStack[]{AddUtils.getInfoShow("&f可能的输出","&7如下所示")},
-                new ItemStack[]{NULL_OUTPUT});
+        
+        this.RECIPE_FOR_DISPLAY = MachineRecipeUtils.stackFrom(-1,
+            new ItemStack[]{AddUtils.getInfoShow("&f可能的输出", "&7如下所示")},
+            new ItemStack[]{NULL_OUTPUT});
     }
-    public void constructMenu(BlockMenuPreset preset){
-        int[] border=BORDER;
-        int len=border.length;
-        for (int i=0;i<len;++i){
-            preset.addItem(border[i], ChestMenuUtils.getBackground(),ChestMenuUtils.getEmptyClickHandler());
-        }
-        border=INPUT_BORDER;
-        len=border.length;
-        for (int i=0;i<len;++i){
-            preset.addItem(border[i], ChestMenuUtils.getInputSlotTexture(),ChestMenuUtils.getEmptyClickHandler());
-        }
-        border=OUTPUT_BORDER;
-        len=border.length;
-        for (int i=0;i<len;++i){
-            preset.addItem(border[i], ChestMenuUtils.getOutputSlotTexture(),ChestMenuUtils.getEmptyClickHandler());
-        }
-        preset.addItem(STATUS_SLOT,STATUS_OFF,ChestMenuUtils.getEmptyClickHandler());
-    }
-    public List<MachineRecipe> getMachineRecipes(){
-        List<MachineRecipe> recipes=new ArrayList<>();
-        recipes.add(RECIPE_FOR_DISPLAY);
-        return recipes;
-    }
-    public void tick(Block b, @Nullable BlockMenu menu, SlimefunBlockData data, int tickCount){
-        if(menu==null)return;
-        if(conditionHandle(b,menu)&& FinalFeature.isFinalAltarCharged(this,data)){
-            if(menu.hasViewer()){
-                menu.replaceExistingItem(STATUS_SLOT,STATUS_ON);
-            }
-            process(b,menu,data);
-        }else {
-            if(menu.hasViewer()){
-                menu.replaceExistingItem(STATUS_SLOT,STATUS_OFF );
-            }
-        }
 
+    @Override
+    public int[] getInputSlots() {
+        return INPUT_SLOT;
     }
+
+    @Override
+    public int[] getOutputSlots() {
+        return OUTPUT_SLOT;
+    }
+
+    @Override
+    public void constructMenu(BlockMenuPreset preset) {
+        // 设置边界槽位
+        for (int slot : BORDER) {
+            preset.addItem(slot, ChestMenuUtils.getBackground(), ChestMenuUtils.getEmptyClickHandler());
+        }
+        
+        // 设置输入区边界
+        for (int slot : INPUT_BORDER) {
+            preset.addItem(slot, ChestMenuUtils.getInputSlotTexture(), ChestMenuUtils.getEmptyClickHandler());
+        }
+        
+        // 设置输出区边界
+        for (int slot : OUTPUT_BORDER) {
+            preset.addItem(slot, ChestMenuUtils.getOutputSlotTexture(), ChestMenuUtils.getEmptyClickHandler());
+        }
+        
+        // 设置状态槽位
+        preset.addItem(STATUS_SLOT, STATUS_OFF, ChestMenuUtils.getEmptyClickHandler());
+    }
+
+    @Override
+    public List<MachineRecipe> getMachineRecipes() {
+        return Collections.singletonList(RECIPE_FOR_DISPLAY);
+    }
+
+    @Override
+    public void tick(Block b, @Nullable BlockMenu menu, SlimefunBlockData data, int tickCount) {
+        if (menu == null) return;
+        
+        boolean isCharged = FinalFeature.isFinalAltarCharged(this, data);
+        boolean conditionsMet = conditionHandle(b, menu) && isCharged;
+        
+        if (menu.hasViewer()) {
+            menu.replaceExistingItem(STATUS_SLOT, conditionsMet ? STATUS_ON : STATUS_OFF);
+        }
+        
+        if (conditionsMet) {
+            process(b, menu, data);
+        }
+    }
+
+    @Override
     public void process(Block b, BlockMenu inv, SlimefunBlockData data) {
-        int hasPutOutput=0;
-        int hasPutInput=0;
-        ItemStack input;
-        ItemStack output;
-        loop:
-        while (true){
-            do{
-                if(hasPutInput>=INPUT_SLOT.length){
-                    break loop;
-                }
-                input=inv.getItemInSlot(INPUT_SLOT[hasPutInput]);
-                ++hasPutInput;
-            }while (input==null);
-            do{
-                if(hasPutOutput>=OUTPUT_SLOT.length){
-                    break loop;
-                }
-                output=inv.getItemInSlot(OUTPUT_SLOT[hasPutOutput]);
-                ++hasPutOutput;
-
-            }while (output!=null);
-            Material randMaterial=getRandomMaterial(input.getType());
-
-            ItemStack result=(randMaterial!=null&&randMaterial.isItem()&&!randMaterial.isAir())?new ItemStack(randMaterial,rand.nextInt( Math.max(1,randMaterial.getMaxStackSize()))+1):NULL_OUT.getInstance();
-
-            inv.replaceExistingItem(OUTPUT_SLOT[hasPutOutput-1],result);
-            inv.replaceExistingItem(INPUT_SLOT[hasPutInput-1],null);
-            progressorCost(b,inv);
-            break ;
+        int inputIndex = 0;
+        int outputIndex = 0;
+        
+        // 遍历所有输入输出槽位
+        while (inputIndex < INPUT_SLOT.length && outputIndex < OUTPUT_SLOT.length) {
+            int inputSlot = INPUT_SLOT[inputIndex];
+            int outputSlot = OUTPUT_SLOT[outputIndex];
+            
+            ItemStack input = inv.getItemInSlot(inputSlot);
+            ItemStack output = inv.getItemInSlot(outputSlot);
+            
+            // 跳过空输入槽
+            if (input == null || input.getType() == Material.AIR) {
+                inputIndex++;
+                continue;
+            }
+            
+            // 跳过非空输出槽
+            if (output != null && output.getType() != Material.AIR) {
+                outputIndex++;
+                continue;
+            }
+            
+            // 处理物品转换
+            Material newMaterial = getRandomMaterial(input.getType());
+            ItemStack result;
+            
+            if (newMaterial != null) {
+                int maxStack = newMaterial.getMaxStackSize();
+                int amount = maxStack > 1 ? rand.nextInt(maxStack) + 1 : 1;
+                result = new ItemStack(newMaterial, amount);
+            } else {
+                result = NULL_OUT.getInstance();
+                Debug.debug("Material conversion failed for: " + input.getType());
+            }
+            
+            // 更新物品
+            inv.replaceExistingItem(outputSlot, result);
+            inv.replaceExistingItem(inputSlot, null);
+            
+            // 消耗能量
+            progressorCost(b, inv);
+            
+            // 处理完一组后退出（一次只处理一个物品）
+            break;
         }
-
     }
 }

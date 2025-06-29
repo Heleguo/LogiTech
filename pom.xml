@@ -111,10 +111,10 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.StarWishsama</groupId>
-            <artifactId>Slimefun4</artifactId>
-            <version>2025.1.1</version>
-            <scope>provided</scope>
+	    <groupId>com.github.SlimefunGuguProject</groupId>
+	    <artifactId>Slimefun4</artifactId>
+	    <version>2024.3</version>
+	    <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.guizhanss</groupId>

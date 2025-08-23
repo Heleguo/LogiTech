@@ -72,7 +72,11 @@ public class EquipmentFUManager implements Manager, Listener {
         unregisterFunctional();
         asyncTaskRunner.shutdown();
     }
-
+	
+    @Override
+    public boolean isAutoDisable() {
+        return true;
+}
     private EquipmentFUManager registerFunctional(){
         Validate.isTrue(!registered, "EquipmentFUManager functional have already been registered!");
         plugin.getServer().getPluginManager().registerEvents(this, plugin);

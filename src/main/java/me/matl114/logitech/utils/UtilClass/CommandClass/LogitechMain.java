@@ -83,7 +83,11 @@ public class LogitechMain extends AbstractMainCommand {
             var re = parseInput(var4).getA();
             String playerName = re.nextArg();
             if( playerName == null ){
-                player = isPlayer(var1,true);
+                if (!(var1 instanceof Player)) {
+                    AddUtils.sendMessage(var1, "该命令只能由玩家执行。");
+                    return true;
+            }
+                 player = (Player) var1;
             }else {
                 player = Bukkit.getPlayer(playerName);
             }
@@ -92,6 +96,9 @@ public class LogitechMain extends AbstractMainCommand {
                     chargeItem(player,re.nextArg());
                 }else {
                     AddUtils.sendMessage(var1,"No Permission!");
+			    } 
+			} else {
+				AddUtils.sendMessage(var1, "玩家不存在或不在线。");
                 }
             }
 

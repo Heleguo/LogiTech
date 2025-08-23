@@ -11,7 +11,7 @@ import me.matl114.logitech.listeners.Events.AttackPermissionTestEvent;
 import me.matl114.logitech.manager.Schedules;
 import me.matl114.logitech.utils.UtilClass.ItemClass.ItemConsumer;
 import me.matl114.logitech.utils.UtilClass.ItemClass.ItemPusher;
-import me.matl114.matlib.algorithms.dataStructures.frames.InitializeSafeProvider;
+import me.matl114.matlib.algorithms.dataStructures.frames.initBuidler.InitializeSafeProvider;
 import me.matl114.matlib.core.EnvironmentManager;
 import me.matl114.matlib.utils.reflect.wrapper.FieldAccess;
 import org.bukkit.*;

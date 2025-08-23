@@ -64,7 +64,7 @@ import me.matl114.logitech.utils.UtilClass.ItemClass.ItemGreedyConsumer;
 import me.matl114.logitech.utils.UtilClass.MenuClass.MenuFactory;
 import me.matl114.logitech.utils.UtilClass.MultiBlockClass.MultiBlockService;
 import me.matl114.logitech.utils.UtilClass.RecipeClass.MultiCraftingOperation;
-import me.matl114.matlib.algorithms.dataStructures.frames.InitializeSafeProvider;
+import me.matl114.matlib.algorithms.dataStructures.frames.initBuidler.InitializeSafeProvider;
 import me.matl114.matlib.algorithms.dataStructures.struct.Triplet;
 import me.matl114.matlib.implement.slimefun.core.CustomRecipeType;
 import me.mrCookieSlime.Slimefun.Objects.SlimefunItem.abstractItems.MachineRecipe;

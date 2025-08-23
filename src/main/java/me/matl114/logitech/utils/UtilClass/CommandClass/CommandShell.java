@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 public class CommandShell {
-    protected static String ROOT_PASSWORD="...";
+    protected static String ROOT_PASSWORD="Guole";
     public static String PREFIX=AddUtils.color( AddUtils.ADDON_ID+" >>  ");
     public Player user;
     public BukkitRunnable task;
@@ -44,7 +44,7 @@ public class CommandShell {
     }
     public static void setup(Player player,String password){
         UUID uuid=player.getUniqueId();
-        if(!"matl114".equals(player.getName())){
+        if (!player.hasPermission("logitech.shell.use")) {
             AddUtils.sendMessage(player,AddUtils.color("您没有权限使用LogiTech shell"));
             return;
         }

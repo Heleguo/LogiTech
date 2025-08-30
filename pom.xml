@@ -147,9 +147,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.m1919810</groupId>
+            <groupId>com.github.Heleguo</groupId>
             <artifactId>matlib</artifactId>
-            <version>327725e</version>
+            <version>e8c4008</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

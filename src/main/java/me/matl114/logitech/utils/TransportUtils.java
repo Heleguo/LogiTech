@@ -228,7 +228,7 @@ public class TransportUtils {
                     .initWithNull()
                     .invoke(null);
             transportationLockFactory = ProxyBuilder.buildMatlibAdaptorOf(LockFactory.class, lockFactory, content-> AdaptorInvocation.createASM(lockFactory.getClass(), content));
-            asyncMode=true;
+            asyncMode=false;
             Debug.logger("Slimefun Async Cargo Factory Adaptor created successfully");
             Debug.logger("Starting Transportation task async Mode");
         }catch (Throwable anyError){

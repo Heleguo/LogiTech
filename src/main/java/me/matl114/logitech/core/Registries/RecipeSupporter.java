@@ -1040,7 +1040,7 @@ public class RecipeSupporter {
             put(EntityType.SQUID, Utils.recipe("INK_SAC"));
             put(EntityType.STRIDER, Utils.recipe("STRING"));
             put(EntityType.TROPICAL_FISH, Utils.recipe("TROPICAL_FISH", AddUtils.probItemStackFactory( AddUtils.resolveItem( "BONE_MEAL"),5)));
-            put(EntityType.TURTLE, Utils.recipe("SEAGRASS", "SCUTE", AddUtils.probItemStackFactory( AddUtils.resolveItem( "BOWL"),5)));
+            put(EntityType.TURTLE, Utils.recipe("SEAGRASS", "TURTLE_SCUTE", AddUtils.probItemStackFactory( AddUtils.resolveItem( "BOWL"),5)));
             put(EntityType.ZOMBIE_HORSE, Utils.recipe("SEAGRASS", "ROTTEN_FLESH"));
         }};
         List<World> worldlist=Bukkit.getWorlds();
@@ -1569,3 +1569,4 @@ public class RecipeSupporter {
 
     }
 }
+
